@@ -117,7 +117,7 @@
           </div>
         </fieldset>
 
-        <fieldset class="col-sm-6">
+        <fieldset class="col-sm-4">
           <legend>Checkboxs</legend>
           <div *ngFor="let checkbox of checkboxs">
             <label>
@@ -126,7 +126,7 @@
             </label>
           </div>
         </fieldset>
-        <fieldset class="col-sm-6">
+        <fieldset class="col-sm-4">
           <legend>Radio</legend>
           <div *ngFor="let radio of radios;">
             <label>
@@ -135,6 +135,13 @@
             </label>
           </div>
         </fieldset>
+		<fieldset class="col-sm-4">
+          <legend>Multiple Select</legend>
+          <select multiple formControlName="multipleSelect">
+              <option *ngFor="let char of alphabets;" [value]="char">{{char}}</option>
+          </select>
+        </fieldset>
+
         <button type="submit" class="btn btn-success">Submit</button>
       </form>
     </div>

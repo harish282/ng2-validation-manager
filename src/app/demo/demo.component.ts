@@ -25,6 +25,7 @@ export class DemoComponent implements OnInit {
     {'name': 'radio3'},
     {'name': 'radio4'},
   ];
+  alphabets = ['A', 'B', 'C', 'D', 'E', 'F'];
 
   ngOnInit() {
 
@@ -46,7 +47,8 @@ export class DemoComponent implements OnInit {
         })
       ],
       'checkboxs': [],
-      'radios': ''
+      'radios': '',
+      'multipleSelect': {value: ['A', 'C'], rules: ''}
     });
 
     this.form.setValue({
