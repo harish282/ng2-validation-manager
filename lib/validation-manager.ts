@@ -1,5 +1,5 @@
-import {FormGroup, FormControl, FormArray, FormBuilder, ValidatorFn} from "@angular/forms";
-import {Validators} from "./validators";
+import { FormGroup, FormControl, FormArray, FormBuilder, ValidatorFn } from "@angular/forms";
+import { Validators } from "./validators";
 
 
 export class ValidationManager {
@@ -13,28 +13,30 @@ export class ValidationManager {
 
   private _fb: FormBuilder;
 
-  constructor(formValidations : String|Object|Array<ValidationManager>|ValidationManager,
-              private displayError : Array<String> = ['invalid', 'dirty', 'submitted']) {
+  constructor(formValidations: String | Object | Array<ValidationManager> | ValidationManager,
+    private displayError: Array<String> = ['invalid', 'dirty', 'submitted']) {
     this.formGroup = new FormGroup({});
     this._fb = new FormBuilder();
-    for(const key in formValidations) {
-
-      if(typeof formValidations[key] == 'string'){
+    for (const key in formValidations) {
+      if (typeof formValidations[key] == 'string') {
         this.controls[key] = this.buildControl(key, formValidations[key]);
-      }else if (formValidations[key] instanceof ValidationManager) {
+      } else if (formValidations[key] instanceof ValidationManager) {
         this.children[key] = formValidations[key];
-        this.controls[key] = {control: formValidations[key].getForm(), messages: {}};
-      }else if (formValidations[key] instanceof Array){
+        this.controls[key] = { control: formValidations[key].getForm(), messages: {} };
+      } else if (formValidations[key] instanceof Array) {
         this.children[key] = [];
         let formArray = <FormArray>this._fb.array([]);
 
-        for(let group of formValidations[key]){
-          formArray.push(group.getForm());
-          this.children[key].push(group);
+        for (let group of formValidations[key]) {
+          if (group instanceof ValidationManager) {
+            formArray.push(group.getForm());
+            this.children[key].push(group);
+          } else
+            formArray.push(new FormControl(group));
         }
-        this.controls[key] = {control: formArray, messages: {}};
-      }else if (typeof formValidations[key] == 'object'){
-        if(!formValidations[key].value)
+        this.controls[key] = { control: formArray, messages: {} };
+      } else if (typeof formValidations[key] == 'object') {
+        if (!formValidations[key].value)
           formValidations[key].value = '';
         this.controls[key] = this.buildControl(key, formValidations[key].rules, formValidations[key].value);
       }
@@ -52,7 +54,7 @@ export class ValidationManager {
   }
 
   getChildGroup(field, index: number = null) {
-    if(index !== null)
+    if (index !== null)
       return this.children[field][index];
     return this.children[field];
   }
@@ -61,13 +63,17 @@ export class ValidationManager {
     return this.children[field];
   }
 
-  addChildGroup(field, mgr: ValidationManager) {
-    if(this.formGroup.controls[field] && this.formGroup.controls[field] instanceof FormArray){
+  addChildGroup(field, mgr: ValidationManager | any) {
+    if (this.formGroup.controls[field] && this.formGroup.controls[field] instanceof FormArray) {
       const control = <FormArray>this.formGroup.controls[field];
-      control.push(mgr.getForm());
-      this.children[field].push(mgr);
+      if (mgr instanceof ValidationManager) {
+        control.push(mgr.getForm());
+        this.children[field].push(mgr);
+      } else
+        control.push(new FormControl(mgr));
+
       return control.length - 1;
-    }else{
+    } else {
       this.children[field] = mgr;
       this.formGroup.addControl(field, mgr.getForm());
       return -1;
@@ -79,11 +85,11 @@ export class ValidationManager {
       return;
     }
 
-    if(index !== null){
+    if (index !== null) {
       const control = <FormArray>this.formGroup.controls[field];
       control.removeAt(index);
       this.children[field].splice(index, 1);
-    }else{
+    } else {
       this.formGroup.removeControl(field);
       delete this.children[field];
     }
@@ -105,12 +111,12 @@ export class ValidationManager {
   }
 
   getErrors() {
-    for(const child in this.children){
-      if(this.children[child] instanceof Array){
+    for (const child in this.children) {
+      if (this.children[child] instanceof Array) {
         this.errors[child] = {};
-        for(const subChild in this.children[child])
+        for (const subChild in this.children[child])
           this.errors[child][subChild] = this.children[child][subChild].errors;
-      }else
+      } else
         this.errors[child] = this.children[child].errors;
     }
     return this.errors;
@@ -141,8 +147,8 @@ export class ValidationManager {
         displayError = this.displayError;
 
       if (control && displayError.length && (displayError.every(element => {
-          return (element == "submitted") ? true : control[element]
-        }) || this.submitted)) {
+        return (element == "submitted") ? true : control[element]
+      }) || this.submitted)) {
         for (let rule in control.errors) {
           this.errors[field] = this.getErrorMessage(field, rule);
         }
@@ -152,22 +158,22 @@ export class ValidationManager {
     this.__callOnChild('onValueChanged');
   }
 
-  setValue(values: Object|String, value = null) {
-
-    if (typeof values == "string") {
+  setValue(values: Object | String, value = null) {
+    // console.log(typeof values, values);
+    if (typeof values === "string") {
       const control = this.formGroup.get(values);
       if (!control || control instanceof FormArray) {
         return;
       }
 
       if (value !== null) {
-        this.formGroup.get(values).setValue(value.toString());
+        this.formGroup.get(values).setValue(value);
         this.formGroup.get(values).markAsTouched();
         this.formGroup.get(values).markAsDirty();
       }
     }
 
-    if (typeof values == "object") {
+    if (typeof values === "object") {
       for (let key in values) {
         if (this.formGroup.get(key)) {
           this.setValue(key, values[key]);
@@ -184,16 +190,20 @@ export class ValidationManager {
     return this.formGroup.value;
   }
 
-  getControl(controlName:string){
-    if(!this.formGroup.controls[controlName])
+  getControl(controlName: string): any {
+    if (!this.formGroup.controls[controlName])
       return;
     return this.formGroup.controls[controlName];
   }
 
-  buildControl(name:string, rules:string, value:string|Object = null) {
+  buildControl(name: string, rules: string, value: string | Object = null) {
 
     var controlRules: ValidatorFn[] = [];
     var messages = {};
+
+    rules = rules.replace(/pattern:(\/.+\/)(\|?)/, function (a, b, c) {
+      return 'pattern:' + btoa(b) + c;
+    });
 
     rules.split('|').forEach(rule => {
       if (rule) {
@@ -209,9 +219,13 @@ export class ValidationManager {
 
         if (rule_vars.length > 1)
           controlRules.push(Validators[rule_name](rule_vars));
-        else if (rule_vars.length == 1)
+        else if (rule_vars.length == 1) {
+
+          if (rule_name == 'pattern' && isBase64(rule_vars[0]))
+            rule_vars[0] = atob(rule_vars[0]).slice(1, -1);
+
           controlRules.push(Validators[rule_name](rule_vars[0]));
-        else
+        } else
           controlRules.push(Validators[rule_name]);
 
         messages[rule_name.toLowerCase()] = this.buildMessage(name, rule_name, rule_vars);
@@ -221,11 +235,10 @@ export class ValidationManager {
 
     var formControl = new FormControl(value, controlRules);
 
-    return {control: formControl, messages: messages};
+    return { control: formControl, messages: messages };
   }
 
   private getErrorMessage(field, rule) {
-    //console.log('Message: '+this.controls[field].messages[rule.toLowerCase()] + ' Field:' + field + ' rule:'+ rule);
     if (!this.controls[field].messages[rule.toLowerCase()])
       throw Error('Message not found inside the control:' + field + ' message:' + rule.toLowerCase());
     return this.controls[field].messages[rule.toLowerCase()];
@@ -241,7 +254,7 @@ export class ValidationManager {
       throw Error('Validation message is missing for: ' + rule);
 
     var message = this.getMessage(rule);
-    message = message.replace(/%n/g, ucFirst(name)).replace('_', ' ');
+    message = message.replace(/%n/g, ucFirst(name)).replace(/_/g, ' ');
 
     if (arg.length) {
       arg.forEach((arg, key) => {
@@ -258,11 +271,11 @@ export class ValidationManager {
 
   private __callOnChild(funct) {
     for (const fld in this.children) {
-      if(this.children[fld] instanceof Array){
+      if (this.children[fld] instanceof Array) {
         for (const child of this.children[fld]) {
           child[funct].apply(child, Array.prototype.slice.call(arguments, 1));
         }
-      }else{
+      } else {
         this.children[fld][funct].apply(this.children[fld], Array.prototype.slice.call(arguments, 1));
       }
 
@@ -271,11 +284,11 @@ export class ValidationManager {
 
   private __setOnChild(field, value) {
     for (const fld in this.children) {
-      if(this.children[fld] instanceof Array){
+      if (this.children[fld] instanceof Array) {
         for (const child of this.children[fld]) {
           child[field] = value;
         }
-      }else{
+      } else {
         this.children[fld][field] = value;
       }
 
@@ -318,4 +331,12 @@ export const VALIDATION_MESSAGES = {
 function ucFirst(str) {
   var firstLetter = str.substr(0, 1);
   return firstLetter.toUpperCase() + str.substr(1);
+}
+
+function isBase64(str) {
+  try {
+    return btoa(atob(str)) == str;
+  } catch (err) {
+    return false;
+  }
 }

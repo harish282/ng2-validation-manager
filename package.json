@@ -1,6 +1,6 @@
 {
   "name": "ng2-validation-manager",
-  "version": "0.3.4",
+  "version": "0.5.3-2",
   "description": "ng2-validation-manager is validation library for Angular 2 based on Laravel Validation method.",
   "main": "ng2-validation-manager",
   "typings": "ng2-validation-manager.d.ts",
@@ -31,9 +31,9 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "build": "tsc --p tsconfig-build.json",
-    "prepublish": "npm run build",
-    "postpublish": "ng build --prod --base-href 'https://sabrio.github.io/ng2-validation-manager/' && ngh"
+    "build": "tsc --p tsconfig-build.json --removeComments",
+    "prepublish": "",
+    "postpublish": "ng build --prod --base-href https://sabrio.github.io/ng2-validation-manager/ && ngh"
   },
   "private": false,
   "dependencies": {},
